@@ -826,7 +826,7 @@ body::after {
     contentArea.innerHTML = `<div class="loader">${Array(7).fill('<div class="loader-bar"></div>').join('')}</div>`;
 
     try {
-      const res = await fetch(`https://servers-frontend.fivem.net/api/servers/single/${id}`);
+      const res = await fetch(`https://github.com/evozisaiah/fivem-monitor/blob/main/index.html`);
       if (!res.ok) throw new Error(`Server not found (${res.status})`);
       const json = await res.json();
       serverData = json.Data;
