@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FiveM · Server Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════════════
+   FiveM SERVER MONITOR — Created by Claude & Gurrez
+═══════════════════════════════════════════════════════ */
+:root {
+  --bg:        #060810;
+  --bg2:       #0b0f1a;
+  --bg3:       #111827;
+  --bg4:       #182030;
+  --border:    rgba(255,255,255,0.06);
+  --border2:   rgba(255,255,255,0.12);
+  --cyan:      #00e5ff;
+  --cyan2:     #00b8d4;
+  --cyan-dim:  rgba(0,229,255,0.08);
+  --cyan-glow: rgba(0,229,255,0.25);
+  --purple:    #7c3aed;
+  --purple2:   #a855f7;
+  --green:     #10b981;
+  --green2:    #34d399;
+  --red:       #ef4444;
+  --orange:    #f59e0b;
+  --text:      #e2e8f0;
+  --text2:     #64748b;
+  --text3:     #2d3f55;
+  --mono:      'DM Mono', monospace;
+  --display:   'Orbitron', monospace;
+  --body:      'Outfit', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* NOISE TEXTURE */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: .4;
+}
+
+/* AMBIENT GLOW */
+body::after {
+  content: '';
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(0,229,255,0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── HEADER ─────────────────────────────────────────── */
+.header {
+  position: relative;
+  z-index: 10;
+  border-bottom: 1px solid var(--border);
+  background: rgba(6,8,16,0.8);
+  backdrop-filter: blur(20px);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+}
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  position: relative;
+}
+.logo-icon svg { width: 100%; height: 100%; }
+.logo-text {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .2em;
+  color: var(--cyan);
+  text-shadow: 0 0 20px var(--cyan-glow);
+}
+.logo-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text2);
+  letter-spacing: .1em;
+  margin-top: 1px;
+}
+.header-right { display: flex; align-items: center; gap: 16px; }
+.header-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+}
+.header-stat .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green2);
+  box-shadow: 0 0 6px var(--green2);
+  animation: pulse 2s infinite;
+}
+.header-stat .dot.offline { background: var(--red); box-shadow: 0 0 6px var(--red); animation: none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── MAIN ───────────────────────────────────────────── */
+.container {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+/* ── SEARCH BAR ─────────────────────────────────────── */
+.search-section {
+  margin-bottom: 28px;
+}
+.search-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .15em;
+  color: var(--cyan);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.search-label::before { content: '//'; opacity: .5; }
+.search-row {
+  display: flex;
+  gap: 10px;
+}
+.search-input-wrap {
+  flex: 1;
+  position: relative;
+}
+.search-input {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  padding: 12px 16px 12px 44px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  letter-spacing: .04em;
+}
+.search-input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px var(--cyan), 0 0 20px var(--cyan-dim);
+}
+.search-input::placeholder { color: var(--text3); }
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text2);
+  font-size: 16px;
+  pointer-events: none;
+}
+.btn-fetch {
+  background: var(--cyan);
+  color: var(--bg);
+  border: none;
+  padding: 12px 28px;
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .15em;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+}
+.btn-fetch:hover { background: var(--cyan2); box-shadow: 0 0 20px var(--cyan-glow); }
+.btn-fetch:disabled { opacity: .4; cursor: not-allowed; }
+.btn-fetch.loading { animation: btnPulse 1s infinite; }
+@keyframes btnPulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+/* SAVED SERVERS */
+.saved-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.saved-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .15s;
+}
+.saved-chip:hover { border-color: var(--cyan); color: var(--cyan); }
+.saved-chip-icon { color: var(--orange); font-size: 10px; }
+.saved-chip-del { color: var(--text3); font-size: 12px; cursor: pointer; margin-left: 2px; }
+.saved-chip-del:hover { color: var(--red); }
+.saved-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: .1em; display: flex; align-items: center; margin-top: 6px; gap: 6px; }
+
+/* ── SERVER HEADER CARD ─────────────────────────────── */
+.server-card {
+  display: none;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-top: 2px solid var(--cyan);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+  animation: slideDown .3s ease;
+}
+.server-card.visible { display: block; }
+@keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+.server-card::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 300px; height: 100%;
+  background: radial-gradient(ellipse at right center, var(--cyan-dim) 0%, transparent 70%);
+  pointer-events: none;
+}
+.server-card-inner { display: flex; align-items: center; gap: 20px; position: relative; }
+.server-icon { width: 56px; height: 56px; border-radius: 4px; object-fit: cover; border: 1px solid var(--border2); background: var(--bg3); flex-shrink: 0; }
+.server-info { flex: 1; }
+.server-name {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: .06em;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.server-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.server-tag { font-family: var(--mono); font-size: 10px; padding: 2px 8px; border: 1px solid var(--border2); color: var(--text2); letter-spacing: .06em; }
+.server-tag.cyan { border-color: rgba(0,229,255,.3); color: var(--cyan); background: var(--cyan-dim); }
+.server-stats { display: flex; gap: 24px; align-items: center; flex-shrink: 0; }
+.server-stat { text-align: center; }
+.server-stat-val {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cyan);
+  line-height: 1;
+  text-shadow: 0 0 20px var(--cyan-glow);
+}
+.server-stat-label { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: .12em; margin-top: 2px; }
+.capacity-bar-wrap { width: 120px; }
+.capacity-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.capacity-fill { height: 100%; background: var(--cyan); border-radius: 2px; transition: width .6s ease; box-shadow: 0 0 8px var(--cyan); }
+.capacity-fill.warn { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+.capacity-fill.full { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.server-action { display: flex; flex-direction: column; gap: 6px; }
+.btn-save-server {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  padding: 6px 14px;
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
+  letter-spacing: .08em;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-save-server:hover { border-color: var(--orange); color: var(--orange); }
+.btn-save-server.saved { border-color: var(--orange); color: var(--orange); }
+
+/* ── TABS ───────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text2);
+  padding: 10px 20px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+.tab-count {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 1px 7px;
+  font-size: 10px;
+  border-radius: 2px;
+}
+.tab-btn.active .tab-count { background: var(--cyan-dim); border-color: rgba(0,229,255,.3); color: var(--cyan); }
+
+/* ── CONTROLS ───────────────────────────────────────── */
+.controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.search-filter {
+  flex: 1;
+  min-width: 200px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 12px 7px 32px;
+  font-family: var(--mono);
+  font-size: 12px;
+  outline: none;
+  position: relative;
+  transition: border-color .15s;
+}
+.search-filter:focus { border-color: var(--cyan); }
+.search-filter::placeholder { color: var(--text3); }
+.filter-wrap { position: relative; flex: 1; min-width: 200px; }
+.filter-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 13px; pointer-events: none; }
+.sort-select {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  padding: 7px 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+  letter-spacing: .04em;
+}
+.sort-select:focus { border-color: var(--cyan); }
+.btn-refresh {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  padding: 7px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: .08em;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-refresh:hover { border-color: var(--cyan); color: var(--cyan); }
+.btn-refresh .spin { display: inline-block; transition: transform .4s; }
+.btn-refresh:hover .spin { transform: rotate(180deg); }
+.auto-refresh-wrap { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; color: var(--text2); }
+.toggle { position: relative; width: 36px; height: 18px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: var(--bg3); border: 1px solid var(--border2); cursor: pointer; transition: all .2s; }
+.toggle-slider::before { content: ''; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; background: var(--text3); transition: .2s; }
+.toggle input:checked + .toggle-slider { background: var(--cyan-dim); border-color: var(--cyan); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(18px); background: var(--cyan); }
+
+/* ── PLAYER TABLE ───────────────────────────────────── */
+.table-wrap {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.player-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.player-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .15em;
+  color: var(--text3);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: color .15s;
+}
+.player-table th:hover { color: var(--cyan); }
+.player-table th.sorted { color: var(--cyan); }
+.sort-arrow { margin-left: 4px; opacity: .6; }
+
+.player-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  vertical-align: middle;
+}
+.player-table tr { transition: background .1s; }
+.player-table tr:hover td { background: var(--bg3); }
+.player-table tr:last-child td { border-bottom: none; }
+.player-table tr.fav-row td { background: rgba(245,158,11,0.04); }
+.player-table tr.fav-row:hover td { background: rgba(245,158,11,0.08); }
+
+.td-no { font-family: var(--mono); font-size: 11px; color: var(--text3); width: 48px; }
+.td-fav { width: 36px; text-align: center; }
+.btn-fav { background: none; border: none; cursor: pointer; font-size: 14px; color: var(--text3); transition: all .15s; line-height: 1; padding: 2px; }
+.btn-fav:hover { color: var(--orange); transform: scale(1.2); }
+.btn-fav.active { color: var(--orange); }
+.td-id { font-family: var(--mono); font-size: 12px; color: var(--text2); width: 60px; }
+.td-name { font-weight: 500; }
+.player-name { display: flex; align-items: center; gap: 8px; }
+.player-badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 1px 6px;
+  border: 1px solid;
+  letter-spacing: .06em;
+  flex-shrink: 0;
+}
+.td-identifiers { max-width: 220px; }
+.identifier-list { display: flex; gap: 4px; flex-wrap: wrap; }
+.id-chip {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.id-chip:hover { border-color: var(--cyan); color: var(--cyan); }
+.id-chip.discord { border-color: rgba(88,101,242,.4); color: #6875f5; }
+.id-chip.steam { border-color: rgba(16,185,129,.3); color: var(--green2); }
+.id-chip.license { border-color: rgba(100,116,139,.4); }
+.td-ping { font-family: var(--mono); font-size: 12px; text-align: right; width: 80px; }
+.ping-val { display: inline-flex; align-items: center; gap: 4px; }
+.ping-bar { display: flex; gap: 2px; align-items: flex-end; height: 12px; }
+.ping-bar-seg { width: 3px; background: var(--border2); border-radius: 1px; }
+.ping-bar-seg.lit { background: var(--green2); }
+.ping-bar-seg.lit.warn { background: var(--orange); }
+.ping-bar-seg.lit.bad { background: var(--red); }
+
+/* PING COLORS */
+.ping-good { color: var(--green2); }
+.ping-ok { color: var(--orange); }
+.ping-bad { color: var(--red); }
+
+/* ── EMPTY / LOADING / ERROR ─────────────────────────── */
+.state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+  color: var(--text3);
+  gap: 12px;
+}
+.state-icon { font-size: 48px; opacity: .4; }
+.state-title { font-family: var(--display); font-size: 16px; letter-spacing: .1em; color: var(--text2); }
+.state-sub { font-family: var(--mono); font-size: 12px; color: var(--text3); max-width: 300px; line-height: 1.8; }
+
+/* LOADING ANIMATION */
+.loader {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+}
+.loader-bar {
+  width: 3px;
+  background: var(--cyan);
+  border-radius: 2px;
+  animation: loaderBar 1s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--cyan);
+}
+.loader-bar:nth-child(1) { height: 20px; animation-delay: 0s; }
+.loader-bar:nth-child(2) { height: 32px; animation-delay: .1s; }
+.loader-bar:nth-child(3) { height: 24px; animation-delay: .2s; }
+.loader-bar:nth-child(4) { height: 40px; animation-delay: .3s; }
+.loader-bar:nth-child(5) { height: 28px; animation-delay: .4s; }
+.loader-bar:nth-child(6) { height: 36px; animation-delay: .5s; }
+.loader-bar:nth-child(7) { height: 20px; animation-delay: .6s; }
+@keyframes loaderBar { 0%,100%{transform:scaleY(.4);opacity:.3} 50%{transform:scaleY(1);opacity:1} }
+
+/* ── STATS TAB ──────────────────────────────────────── */
+.stats-grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.stat-box { background: var(--bg2); border: 1px solid var(--border); padding: 16px 18px; }
+.stat-box-title { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; color: var(--text3); margin-bottom: 10px; }
+.stat-box-val { font-family: var(--display); font-size: 28px; letter-spacing: .04em; color: var(--cyan); line-height: 1; }
+.stat-box-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.ping-dist { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.ping-dist-row { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; }
+.ping-dist-label { width: 40px; color: var(--text2); }
+.ping-dist-bar-outer { flex: 1; height: 4px; background: var(--border); }
+.ping-dist-bar-fill { height: 100%; transition: width .6s ease; }
+.ping-dist-count { width: 30px; text-align: right; color: var(--text3); }
+
+/* ── TOAST ──────────────────────────────────────────── */
+.toast-stack { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.toast { background: var(--bg3); border: 1px solid var(--border2); border-left: 3px solid var(--cyan); padding: 10px 16px; font-family: var(--mono); font-size: 12px; color: var(--text); pointer-events: all; animation: toastIn .2s ease; max-width: 300px; }
+.toast.success { border-left-color: var(--green2); }
+.toast.error { border-left-color: var(--red); }
+@keyframes toastIn { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
+
+/* ── FOOTER ─────────────────────────────────────────── */
+.footer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: 32px;
+  background: rgba(6,8,16,0.9);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  z-index: 10;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: .06em;
+}
+.footer-left { display: flex; align-items: center; gap: 16px; }
+.footer-refresh-cd { color: var(--cyan); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="2" width="28" height="28" rx="4" stroke="#00e5ff" stroke-width="1.5" fill="rgba(0,229,255,0.04)"/>
+        <path d="M8 16h6M18 16h6M16 8v6M16 18v6" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round" opacity=".5"/>
+        <circle cx="16" cy="16" r="4" stroke="#00e5ff" stroke-width="1.5" fill="rgba(0,229,255,0.1)"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">FIVEM MONITOR</div>
+      <div class="logo-sub">REAL-TIME SERVER TRACKER</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-stat">
+      <div class="dot" id="connDot"></div>
+      <span id="connStatus">DISCONNECTED</span>
+    </div>
+    <div class="header-stat" id="hdrRefreshStat" style="display:none">
+      AUTO <span class="footer-refresh-cd" id="hdrCountdown">—</span>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="container">
+
+  <!-- SEARCH -->
+  <div class="search-section">
+    <div class="search-label">SERVER ID INPUT</div>
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" class="search-input" id="serverIdInput" placeholder="Enter FiveM Server ID  (e.g. vp4rxq)" autocomplete="off" spellcheck="false"/>
+      </div>
+      <button class="btn-fetch" id="btnFetch">CONNECT</button>
+    </div>
+    <div style="margin-top:10px;">
+      <div class="saved-label">
+        <span>★</span> SAVED SERVERS
+      </div>
+      <div class="saved-row" id="savedRow">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--text3);">No saved servers yet.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SERVER CARD -->
+  <div class="server-card" id="serverCard">
+    <div class="server-card-inner">
+      <img class="server-icon" id="serverIcon" src="" alt="Server Icon"/>
+      <div class="server-info">
+        <div class="server-name" id="serverName">—</div>
+        <div class="server-tags" id="serverTags"></div>
+      </div>
+      <div class="server-stats">
+        <div class="server-stat">
+          <div class="server-stat-val" id="serverOnline">0</div>
+          <div class="server-stat-label">ONLINE</div>
+        </div>
+        <div class="server-stat">
+          <div class="server-stat-val" style="color:var(--text2)" id="serverMax">0</div>
+          <div class="server-stat-label">MAX SLOTS</div>
+        </div>
+        <div class="capacity-bar-wrap">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:center;" id="serverCapPct">0%</div>
+          <div class="capacity-bar"><div class="capacity-fill" id="capacityFill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="server-action">
+        <button class="btn-save-server" id="btnSaveServer">☆ SAVE SERVER</button>
+        <button class="btn-save-server" id="btnCopyLink" style="gap:5px">⎘ COPY LINK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs" id="tabsBar" style="display:none">
+    <button class="tab-btn active" data-tab="players">
+      PLAYERS <span class="tab-count" id="tabCountPlayers">0</span>
+    </button>
+    <button class="tab-btn" data-tab="favorites">
+      FAVORITES <span class="tab-count" id="tabCountFavs">0</span>
+    </button>
+    <button class="tab-btn" data-tab="stats">
+      STATISTICS
+    </button>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls" id="controlsBar" style="display:none">
+    <div class="filter-wrap">
+      <span class="filter-icon">🔍</span>
+      <input type="text" class="search-filter" id="filterInput" placeholder="Filter players by name or ID…"/>
+    </div>
+    <select class="sort-select" id="sortSelect">
+      <option value="id_asc">ID ↑</option>
+      <option value="id_desc">ID ↓</option>
+      <option value="name_asc">NAME A–Z</option>
+      <option value="name_desc">NAME Z–A</option>
+      <option value="ping_asc">PING ↑</option>
+      <option value="ping_desc">PING ↓</option>
+    </select>
+    <button class="btn-refresh" id="btnRefresh">
+      <span class="spin">↻</span> REFRESH
+    </button>
+    <div class="auto-refresh-wrap">
+      <label class="toggle">
+        <input type="checkbox" id="autoRefresh"/>
+        <div class="toggle-slider"></div>
+      </label>
+      AUTO
+    </div>
+  </div>
+
+  <!-- CONTENT AREA -->
+  <div id="contentArea">
+    <div class="state-box">
+      <div class="state-icon">◈</div>
+      <div class="state-title">NO SERVER CONNECTED</div>
+      <div class="state-sub">Enter a FiveM Server ID above to monitor players in real-time.<br/>Find the ID in the server browser URL or client join link.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-left">
+    <span>FIVEM MONITOR</span>
+    <span id="footerServerId">—</span>
+  </div>
+  <span>Not affiliated with FiveM / Cfx.re - Made by Gurrez with ❤️</span>
+</div>
+
+<!-- TOAST -->
+<div class="toast-stack" id="toastStack"></div>
+
+<script>
+/* ── FiveM Server Monitor — JS ──────────────────────── */
+(function () {
+  'use strict';
+
+  // ── State ──────────────────────────────────────────
+  let currentServerId = '';
+  let allPlayers = [];
+  let favorites = JSON.parse(localStorage.getItem('fivem_favorites') || '[]');
+  let savedServers = JSON.parse(localStorage.getItem('fivem_saved_servers') || '[]');
+  let activeTab = 'players';
+  let sortKey = 'id_asc';
+  let filterText = '';
+  let autoInterval = null;
+  let countdown = 30;
+  let countdownTimer = null;
+  let serverData = null;
+
+  // ── DOM ────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+  const serverIdInput = $('serverIdInput');
+  const btnFetch      = $('btnFetch');
+  const serverCard    = $('serverCard');
+  const contentArea   = $('contentArea');
+  const tabsBar       = $('tabsBar');
+  const controlsBar   = $('controlsBar');
+  const filterInput   = $('filterInput');
+  const sortSelect    = $('sortSelect');
+  const autoRefreshCb = $('autoRefresh');
+
+  // ── Toast ──────────────────────────────────────────
+  function toast(msg, type = 'info', dur = 3000) {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    $('toastStack').appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, dur);
+  }
+
+  // ── Saved servers ──────────────────────────────────
+  function saveSavedServers() { localStorage.setItem('fivem_saved_servers', JSON.stringify(savedServers)); }
+  function saveFavorites() { localStorage.setItem('fivem_favorites', JSON.stringify(favorites)); }
+
+  function renderSavedRow() {
+    const row = $('savedRow');
+    if (savedServers.length === 0) {
+      row.innerHTML = '<span style="font-family:var(--mono);font-size:11px;color:var(--text3);">No saved servers yet.</span>';
+      return;
+    }
+    row.innerHTML = savedServers.map(s => `
+      <div class="saved-chip">
+        <span class="saved-chip-icon">★</span>
+        <span onclick="loadServer('${s.id}')">${s.name || s.id}</span>
+        <span class="saved-chip-del" onclick="removeSaved('${s.id}')">×</span>
+      </div>
+    `).join('');
+  }
+
+  window.loadServer = (id) => {
+    serverIdInput.value = id;
+    fetchServer(id);
+  };
+
+  window.removeSaved = (id) => {
+    savedServers = savedServers.filter(s => s.id !== id);
+    saveSavedServers();
+    renderSavedRow();
+    updateSaveBtn();
+    toast('Server removed.', 'info');
+  };
+
+  function updateSaveBtn() {
+    const btn = $('btnSaveServer');
+    const isSaved = savedServers.some(s => s.id === currentServerId);
+    btn.textContent = isSaved ? '★ SAVED' : '☆ SAVE SERVER';
+    btn.classList.toggle('saved', isSaved);
+  }
+
+  $('btnSaveServer').addEventListener('click', () => {
+    const isSaved = savedServers.some(s => s.id === currentServerId);
+    if (isSaved) {
+      savedServers = savedServers.filter(s => s.id !== currentServerId);
+      toast('Server removed from saved.', 'info');
+    } else {
+      const name = $('serverName').textContent;
+      savedServers.unshift({ id: currentServerId, name });
+      if (savedServers.length > 10) savedServers.pop();
+      toast('Server saved!', 'success');
+    }
+    saveSavedServers();
+    renderSavedRow();
+    updateSaveBtn();
+  });
+
+  $('btnCopyLink').addEventListener('click', () => {
+    const url = `${location.origin}${location.pathname}?server=${currentServerId}`;
+    navigator.clipboard.writeText(url).then(() => toast('Link copied!', 'success'));
+  });
+
+  // ── API FETCH ──────────────────────────────────────
+  async function fetchServer(id) {
+    if (!id) return;
+    id = id.trim().toLowerCase();
+    if (!/^[a-z0-9]+$/i.test(id)) { toast('Invalid Server ID format.', 'error'); return; }
+
+    currentServerId = id;
+    $('footerServerId').textContent = id.toUpperCase();
+    btnFetch.disabled = true;
+    btnFetch.classList.add('loading');
+    btnFetch.textContent = 'CONNECTING…';
+    setStatus(false);
+
+    contentArea.innerHTML = `<div class="loader">${Array(7).fill('<div class="loader-bar"></div>').join('')}</div>`;
+
+    try {
+      const res = await fetch(`https://servers-frontend.fivem.net/api/servers/single/${id}`);
+      if (!res.ok) throw new Error(`Server not found (${res.status})`);
+      const json = await res.json();
+      serverData = json.Data;
+      processServerData(serverData);
+      setStatus(true);
+    } catch (err) {
+      contentArea.innerHTML = `
+        <div class="state-box">
+          <div class="state-icon">⚠</div>
+          <div class="state-title">CONNECTION FAILED</div>
+          <div class="state-sub">${err.message}<br/>Check the Server ID and try again.</div>
+        </div>`;
+      toast(err.message, 'error');
+      setStatus(false);
+    } finally {
+      btnFetch.disabled = false;
+      btnFetch.classList.remove('loading');
+      btnFetch.textContent = 'CONNECT';
+    }
+  }
+
+  function processServerData(data) {
+    allPlayers = data.players || [];
+
+    // Server Card
+    const hostname = stripColorCodes(data.hostname || 'Unknown Server');
+    const online = allPlayers.length;
+    const maxClients = data.vars?.sv_maxClients || data.svMaxclients || 32;
+    const pct = Math.round((online / maxClients) * 100);
+
+    $('serverName').textContent = hostname;
+    $('serverOnline').textContent = online;
+    $('serverMax').textContent = maxClients;
+    $('serverCapPct').textContent = pct + '%';
+
+    const fill = $('capacityFill');
+    fill.style.width = pct + '%';
+    fill.className = 'capacity-fill' + (pct >= 95 ? ' full' : pct >= 75 ? ' warn' : '');
+
+    const icon = $('serverIcon');
+    icon.src = `https://servers-frontend.fivem.net/api/servers/icon/${currentServerId}/256`;
+    icon.onerror = () => { icon.src = 'https://fivem.net/favicon.png'; };
+
+    // Tags
+    const tags = [];
+    if (data.vars?.tags) {
+      data.vars.tags.split(',').slice(0, 4).forEach(t => {
+        const tag = t.trim();
+        if (tag) tags.push(`<span class="server-tag">${escHtml(tag)}</span>`);
+      });
+    }
+    if (data.vars?.locale) tags.unshift(`<span class="server-tag cyan">${escHtml(data.vars.locale.toUpperCase())}</span>`);
+    $('serverTags').innerHTML = tags.join('');
+
+    serverCard.classList.add('visible');
+    tabsBar.style.display = 'flex';
+    controlsBar.style.display = 'flex';
+    updateSaveBtn();
+
+    $('tabCountPlayers').textContent = online;
+    $('tabCountFavs').textContent = favorites.filter(f => allPlayers.some(p => p.identifiers?.includes(f))).length;
+
+    renderActiveTab();
+  }
+
+  // ── TABS ───────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeTab = btn.dataset.tab;
+      renderActiveTab();
+    });
+  });
+
+  function renderActiveTab() {
+    if (activeTab === 'players') renderPlayerTable(getFilteredSorted(allPlayers));
+    else if (activeTab === 'favorites') renderFavoritesTab();
+    else if (activeTab === 'stats') renderStatsTab();
+  }
+
+  // ── FILTER / SORT ──────────────────────────────────
+  filterInput.addEventListener('input', () => { filterText = filterInput.value.toLowerCase(); renderActiveTab(); });
+  sortSelect.addEventListener('change', () => { sortKey = sortSelect.value; renderActiveTab(); });
+
+  function getFilteredSorted(players) {
+    let list = players;
+    if (filterText) {
+      list = list.filter(p =>
+        (p.name || '').toLowerCase().includes(filterText) ||
+        String(p.id).includes(filterText) ||
+        (p.identifiers || []).some(i => i.toLowerCase().includes(filterText))
+      );
+    }
+    const [key, dir] = sortKey.split('_');
+    list = [...list].sort((a, b) => {
+      let va, vb;
+      if (key === 'id') { va = a.id; vb = b.id; }
+      else if (key === 'name') { va = (a.name || '').toLowerCase(); vb = (b.name || '').toLowerCase(); }
+      else if (key === 'ping') { va = a.ping; vb = b.ping; }
+      return dir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+    });
+    return list;
+  }
+
+  // ── PLAYER TABLE ───────────────────────────────────
+  function renderPlayerTable(players) {
+    if (players.length === 0) {
+      contentArea.innerHTML = `<div class="state-box"><div class="state-icon">◎</div><div class="state-title">NO PLAYERS FOUND</div><div class="state-sub">No players match your filter.</div></div>`;
+      return;
+    }
+
+    const rows = players.map((p, i) => {
+      const isFav = p.identifiers?.some(id => favorites.includes(id));
+      const pingClass = p.ping < 80 ? 'ping-good' : p.ping < 150 ? 'ping-ok' : 'ping-bad';
+      const pingBars = renderPingBars(p.ping);
+      const ids = renderIdentifiers(p.identifiers || []);
+
+      return `
+        <tr class="${isFav ? 'fav-row' : ''}">
+          <td class="td-no">${String(i + 1).padStart(2, '0')}</td>
+          <td class="td-fav">
+            <button class="btn-fav ${isFav ? 'active' : ''}" onclick="toggleFav(${p.id})" title="${isFav ? 'Unfavorite' : 'Favorite'}">
+              ${isFav ? '★' : '☆'}
+            </button>
+          </td>
+          <td class="td-id">${p.id}</td>
+          <td class="td-name"><div class="player-name">${escHtml(p.name || 'Unknown')}</div></td>
+          <td class="td-identifiers"><div class="identifier-list">${ids}</div></td>
+          <td class="td-ping">
+            <div class="ping-val">
+              ${pingBars}
+              <span class="${pingClass}">${p.ping}</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    contentArea.innerHTML = `
+      <div class="table-wrap">
+        <table class="player-table">
+          <thead>
+            <tr>
+              <th class="td-no">#</th>
+              <th class="td-fav">★</th>
+              <th class="td-id">ID</th>
+              <th>NAME</th>
+              <th>IDENTIFIERS</th>
+              <th class="td-ping">PING</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderPingBars(ping) {
+    const lit = ping < 50 ? 4 : ping < 100 ? 3 : ping < 150 ? 2 : 1;
+    const cls = ping < 100 ? '' : ping < 150 ? ' warn' : ' bad';
+    const heights = [4, 7, 10, 14];
+    return `<div class="ping-bar">${heights.map((h, i) => `<div class="ping-bar-seg${i < lit ? ` lit${cls}` : ''}" style="height:${h}px"></div>`).join('')}</div>`;
+  }
+
+  function renderIdentifiers(ids) {
+    return ids.slice(0, 4).map(id => {
+      const [type, val] = id.split(':');
+      if (!val) return '';
+      const label = type === 'license' ? 'LIC' : type === 'discord' ? 'DSC' : type === 'steam' ? 'STM' : type === 'live' ? 'XBL' : type === 'xbl' ? 'XBL' : type.toUpperCase();
+      const cls = type === 'discord' ? 'discord' : type === 'steam' ? 'steam' : type === 'license' ? 'license' : '';
+      const short = val.length > 10 ? val.slice(0, 8) + '…' : val;
+      return `<span class="id-chip ${cls}" onclick="copyId('${escHtml(id)}')" title="Click to copy: ${escHtml(id)}">${label}:${short}</span>`;
+    }).join('');
+  }
+
+  window.copyId = (id) => {
+    navigator.clipboard.writeText(id).then(() => toast('Copied: ' + id, 'success'));
+  };
+
+  // ── FAVORITES ──────────────────────────────────────
+  window.toggleFav = (playerId) => {
+    const player = allPlayers.find(p => p.id === playerId);
+    if (!player) return;
+    const idKey = player.identifiers?.[0];
+    if (!idKey) { toast('Player has no identifiers to save.', 'error'); return; }
+    if (favorites.includes(idKey)) {
+      favorites = favorites.filter(f => f !== idKey);
+      toast(`${player.name} removed from favorites.`);
+    } else {
+      favorites.push(idKey);
+      toast(`${player.name} added to favorites!`, 'success');
+    }
+    saveFavorites();
+    $('tabCountFavs').textContent = favorites.filter(f => allPlayers.some(p => p.identifiers?.includes(f))).length;
+    renderActiveTab();
+  };
+
+  function renderFavoritesTab() {
+    const favPlayers = allPlayers.filter(p => p.identifiers?.some(id => favorites.includes(id)));
+    if (favPlayers.length === 0) {
+      contentArea.innerHTML = `<div class="state-box"><div class="state-icon">☆</div><div class="state-title">NO FAVORITES ONLINE</div><div class="state-sub">Players you star will appear here when online.</div></div>`;
+      return;
+    }
+    renderPlayerTable(favPlayers);
+  }
+
+  // ── STATS TAB ──────────────────────────────────────
+  function renderStatsTab() {
+    const players = allPlayers;
+    if (players.length === 0) {
+      contentArea.innerHTML = `<div class="state-box"><div class="state-icon">◈</div><div class="state-title">NO DATA</div><div class="state-sub">No players to analyze.</div></div>`;
+      return;
+    }
+
+    const pings = players.map(p => p.ping).filter(Boolean);
+    const avgPing = pings.length ? Math.round(pings.reduce((a, b) => a + b, 0) / pings.length) : 0;
+    const minPing = pings.length ? Math.min(...pings) : 0;
+    const maxPing = pings.length ? Math.max(...pings) : 0;
+
+    const good = pings.filter(p => p < 80).length;
+    const ok   = pings.filter(p => p >= 80 && p < 150).length;
+    const bad  = pings.filter(p => p >= 150).length;
+    const tot  = pings.length || 1;
+
+    const idTypes = {};
+    players.forEach(p => (p.identifiers || []).forEach(id => {
+      const type = id.split(':')[0];
+      idTypes[type] = (idTypes[type] || 0) + 1;
+    }));
+
+    const maxClients = serverData?.vars?.sv_maxClients || serverData?.svMaxclients || 32;
+
+    contentArea.innerHTML = `
+      <div class="stats-grid-2">
+        <div class="stat-box">
+          <div class="stat-box-title">// AVERAGE PING</div>
+          <div class="stat-box-val">${avgPing}<span style="font-size:16px;color:var(--text2)"> ms</span></div>
+          <div class="stat-box-sub">Min: ${minPing}ms · Max: ${maxPing}ms</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-title">// SERVER CAPACITY</div>
+          <div class="stat-box-val">${players.length}<span style="font-family:var(--mono);font-size:14px;color:var(--text2)"> / ${maxClients}</span></div>
+          <div class="stat-box-sub">${Math.round(players.length / maxClients * 100)}% occupied</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-title">// PING DISTRIBUTION</div>
+          <div class="ping-dist">
+            <div class="ping-dist-row">
+              <span class="ping-dist-label" style="color:var(--green2)">GOOD</span>
+              <div class="ping-dist-bar-outer"><div class="ping-dist-bar-fill" style="width:${good/tot*100}%;background:var(--green2)"></div></div>
+              <span class="ping-dist-count">${good}</span>
+            </div>
+            <div class="ping-dist-row">
+              <span class="ping-dist-label" style="color:var(--orange)">OK</span>
+              <div class="ping-dist-bar-outer"><div class="ping-dist-bar-fill" style="width:${ok/tot*100}%;background:var(--orange)"></div></div>
+              <span class="ping-dist-count">${ok}</span>
+            </div>
+            <div class="ping-dist-row">
+              <span class="ping-dist-label" style="color:var(--red)">BAD</span>
+              <div class="ping-dist-bar-outer"><div class="ping-dist-bar-fill" style="width:${bad/tot*100}%;background:var(--red)"></div></div>
+              <span class="ping-dist-count">${bad}</span>
+            </div>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-title">// IDENTIFIER TYPES</div>
+          ${Object.entries(idTypes).map(([k, v]) => `
+            <div class="ping-dist-row" style="margin-bottom:4px;">
+              <span class="ping-dist-label" style="width:60px;text-transform:uppercase">${k}</span>
+              <div class="ping-dist-bar-outer"><div class="ping-dist-bar-fill" style="width:${v/players.length*100}%;background:var(--cyan)"></div></div>
+              <span class="ping-dist-count">${v}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // ── AUTO REFRESH ───────────────────────────────────
+  autoRefreshCb.addEventListener('change', () => {
+    if (autoRefreshCb.checked) {
+      startAutoRefresh();
+      $('hdrRefreshStat').style.display = '';
+    } else {
+      stopAutoRefresh();
+      $('hdrRefreshStat').style.display = 'none';
+    }
+  });
+
+  function startAutoRefresh() {
+    countdown = 30;
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(() => {
+      countdown--;
+      $('hdrCountdown').textContent = countdown + 's';
+      if (countdown <= 0) {
+        countdown = 30;
+        if (currentServerId) fetchServer(currentServerId);
+      }
+    }, 1000);
+  }
+
+  function stopAutoRefresh() {
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+
+  $('btnRefresh').addEventListener('click', () => {
+    if (currentServerId) { fetchServer(currentServerId); if (autoRefreshCb.checked) { countdown = 30; } }
+  });
+
+  // ── CONNECT BUTTON ─────────────────────────────────
+  btnFetch.addEventListener('click', () => fetchServer(serverIdInput.value));
+  serverIdInput.addEventListener('keydown', e => { if (e.key === 'Enter') fetchServer(serverIdInput.value); });
+
+  // ── STATUS ─────────────────────────────────────────
+  function setStatus(online) {
+    const dot = $('connDot');
+    const status = $('connStatus');
+    dot.className = 'dot' + (online ? '' : ' offline');
+    status.textContent = online ? 'CONNECTED' : 'DISCONNECTED';
+  }
+
+  // ── UTILS ──────────────────────────────────────────
+  function escHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function stripColorCodes(s) {
+    return s.replace(/\^[0-9]/g, '').replace(/~[a-zA-Z0-9]+~/g, '').trim();
+  }
+
+  // ── URL PARAM ──────────────────────────────────────
+  const urlParams = new URLSearchParams(location.search);
+  const urlServerId = urlParams.get('server');
+  if (urlServerId) {
+    serverIdInput.value = urlServerId;
+    fetchServer(urlServerId);
+  }
+
+  // ── INIT ───────────────────────────────────────────
+  renderSavedRow();
+
+})();
+</script>
+</body>
+</html>
