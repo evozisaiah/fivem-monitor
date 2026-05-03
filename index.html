@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════════════════════
-   FiveM SERVER MONITOR — Cinematic Dark UI
+   FiveM SERVER MONITOR
 ═══════════════════════════════════════════════════════ */
 :root {
   --bg:        #060810;
@@ -827,7 +827,7 @@ body::after {
 
     try {
       // Fetch via CORS proxy — ganti PROXY_URL setelah Railway proxy live
-      const PROXY_URL = 'https://fivem-proxy-production-0451.up.railway.app';
+      const PROXY_URL = 'fivem-proxy-production-0451.up.railway.app';
       const res = await fetch(`${PROXY_URL}/api/server/${id}`);
       if (!res.ok) throw new Error(`Server not found (${res.status})`);
       const json = await res.json();
