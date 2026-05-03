@@ -827,7 +827,7 @@ body::after {
 
     try {
       // Fetch via CORS proxy — ganti PROXY_URL setelah Railway proxy live
-      const PROXY_URL = 'fivem-proxy-production-0451.up.railway.app';
+      const PROXY_URL = 'https://fivem-proxy-production-0451.up.railway.app';
       const res = await fetch(`${PROXY_URL}/api/server/${id}`);
       if (!res.ok) throw new Error(`Server not found (${res.status})`);
       const json = await res.json();
