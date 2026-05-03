@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════════════════════
-   FiveM SERVER MONITOR — Created by Claude & Gurrez
+   FiveM SERVER MONITOR — Cinematic Dark UI
 ═══════════════════════════════════════════════════════ */
 :root {
   --bg:        #060810;
@@ -826,10 +826,13 @@ body::after {
     contentArea.innerHTML = `<div class="loader">${Array(7).fill('<div class="loader-bar"></div>').join('')}</div>`;
 
     try {
-      const res = await fetch(`https://github.com/evozisaiah/fivem-monitor/blob/main/index.html`);
+      // Fetch via CORS proxy — ganti PROXY_URL setelah Railway proxy live
+      const PROXY_URL = 'fivem-proxy-production-0451.up.railway.app';
+      const res = await fetch(`${PROXY_URL}/api/server/${id}`);
       if (!res.ok) throw new Error(`Server not found (${res.status})`);
       const json = await res.json();
-      serverData = json.Data;
+      // FiveM API wraps in .Data, proxy forwards as-is
+      serverData = json.Data || json;
       processServerData(serverData);
       setStatus(true);
     } catch (err) {
